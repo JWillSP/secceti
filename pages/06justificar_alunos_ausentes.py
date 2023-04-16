@@ -131,11 +131,11 @@ if login_data is not None and \
                                algorithms=["HS256"],
                                options={"verify_signature": False})
     if decoded_token['exp'] < time.time():
-      raise jwt.ExpiredSignatureError()
+      raise Exception("Token expired")
     form.success("You are logged in.")
 
-  except jwt.ExpiredSignatureError:
-    form.write("Seu tempo de acesso expirou. Por favor, faça login novamente.")
+  except Exception as e:
+    form.write(f"Seu tempo de acesso expirou. Por favor, faça login novamente. {e}")
     login_data = None
   except:
     form.write(

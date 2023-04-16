@@ -4,7 +4,9 @@ import numpy as np
 from pymongo import MongoClient
 import time
 import io
+
 import jwt
+
 import pickle
 
 SECRETNAME = 'estudantes '
@@ -34,10 +36,10 @@ if login_data is not None and \
                                algorithms=["HS256"],
                                options={"verify_signature": False})
     if decoded_token['exp'] < time.time():
-      raise jwt.ExpiredSignatureError()
+      raise Exception("Token expired")
     form.success("You are logged in.")
 
-  except jwt.ExpiredSignatureError:
+  except Exception as e:
     form.write("Seu tempo de acesso expirou. Por favor, faça login novamente.")
     login_data = None
   except:
