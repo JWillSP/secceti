@@ -4,7 +4,7 @@ import numpy as np
 from pymongo import MongoClient
 import time
 import io
-
+from fix_names import nametofix
 import jwt
 
 import pickle
@@ -75,6 +75,7 @@ if to_next:
           'SITUACAO': 'status'
         })
       trans = {202231507433: 'HERICA DE ALMEIDA SANTOS'}
+      trans.update(nametofix)
       for rm, nome in trans.items():
         df1.loc[df1['matrícula'] == rm, 'estudante'] = nome
 
