@@ -12,7 +12,7 @@ from cifrafor import gera_cifra
 
 def main():
   st.title("Justificativa de Faltas")
-  search_term = st.text_input('Busque pelo nome do estudante')
+  search_term = st.text_input('Busque pelo nome do estudante', value='NOME DO ESTUDANTE')
   if search_term:
     response = httpx.get(
       'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')

@@ -5,11 +5,6 @@ import io
 import pickle
 
 SECRETNAME = 'estudantes '
-try:
-  dbcred = st.secrets["dbcred"]
-except FileNotFoundError:
-  import os
-  dbcred = os.environ['dbcred']
 
 st.markdown("### BAIXAR CHAVE DE ACESSO ADMINISTRATIVA :old_key:")
 st.sidebar.markdown(
