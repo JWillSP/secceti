@@ -5,7 +5,7 @@ import pandas as pd
 from pymongo import MongoClient
 import streamlit as st
 from turmasdetalhes import turmastd
-
+import numpy as np
 
 st.markdown('# Faltômetro')
 st.sidebar.markdown("# Faltômetro")
@@ -55,54 +55,61 @@ pre_leque = ['ESCOLHA A TURMA'] + sorted(list(turmastd.keys()))
 leque = tuple(pre_leque)
 turma_selected = st.selectbox('Selecione a turma:', leque)
 
+@st.cache_data
+def get_data_at_db():
+    collection1 = db['2023@1124856'] 
+    all_stds = pd.DataFrame(list(collection1.find()))
+    collection2 = db['2023frequencia']
+    freq_all = pd.DataFrame(list(collection2.find()))
+    collection3 = db['2023@jus']
+    all_jus = pd.DataFrame(list(collection3.find()))
+    return all_stds, freq_all, all_jus
+
 if 'ESCOLHA' not in unidade_selected and 'ESCOLHA' not in turma_selected:
-    collection = db['2023@1124856'] 
-    df = pd.DataFrame(list(collection.find()))
-    all_stds = pd.DataFrame(list(collection.find()))
-    collection = db['2023frequencia']
-    df = pd.DataFrame(list(collection.find()))
-    freq_all = pd.DataFrame(list(collection.find()))
-    collection = db['2023@jus']
-    df = pd.DataFrame(list(collection.find()))
-    all_jus = pd.DataFrame(list(collection.find()))
+    all_stds, freq_all, all_jus = get_data_at_db()
     
     daterange = pd.DatetimeIndex(unidades_dr[unidade_selected])
-    freq_all['datetime'] = pd.to_datetime(freq_all['created_at'])
-    mask = freq_all['datetime'].dt.date.isin(daterange.date)
+
+    def date_convert(date):
+        date = date.split('/')
+        date = datetime(int(date[2]), int(date[1]), int(date[0]))
+        return date
+
+    freq_all['date'] = freq_all['data'].apply(date_convert)
+    mask = freq_all['date'].dt.date.isin(daterange.date)
     df_filtered = freq_all[mask]
 
-    master_faltas_df = pd.DataFrame()
-    for index, current_row in df_filtered.iterrows():
-        new_df = pd.DataFrame()
-        one_freq = (~pd.DataFrame(current_row['frequência']).set_index('matrícula')['isPresent'].T)
-        local_series = one_freq[one_freq].astype(int)*len(current_row['horários'])
-        new_df['matrícula'] = local_series.index
-        new_df['faltas'] = local_series.values
-        new_df['date'] = current_row['datetime']
-        new_df['turma'] = current_row['turma']
-        new_df['componente'] = current_row['componente']
-        new_df['horários'] = str(current_row['horários'])
-        new_df['vínculo'] = current_row['vínculo']
-        new_df['professor'] = current_row['professor']
-        new_df['pro_matrícula'] = current_row['matrícula']
-        master_faltas_df = pd.concat([new_df, master_faltas_df], ignore_index=True)
+    def get_who_miss(c_row):
+        to_return = {}
+        par = ~pd.DataFrame(c_row['frequência']).set_index('matrícula')['isPresent']
+        middle = (par[par]*len(c_row['horários'])).to_dict()
+        for rm, nfaltas in middle.items():
+            inner = {}
+            inner['matrícula'] = rm
+            inner['faltas'] = nfaltas
+            inner['componente'] = c_row['componente']
+            inner['date'] = c_row['date']
 
+            to_return.update({str(rm)+'_'+c_row['created_at']:inner})
+        return to_return if to_return else np.nan
+
+    with_who_missed = df_filtered[df_filtered['turma'] == turma_selected]
     amostra_alunos = all_stds[all_stds['turma'] == turma_selected].matrícula.values
-
     amostra_nome = all_stds[all_stds['matrícula'].isin(amostra_alunos)]
     d_mat_nome = {
         matrícula: nome for matrícula, nome in zip(amostra_nome.matrícula, amostra_nome.estudante)
     }
-
-    mask = master_faltas_df.matrícula.isin(amostra_alunos)
-    sel_turma_current = master_faltas_df[mask]
-    class_jus = all_jus[all_jus['matrícula'].isin(sel_turma_current.matrícula)]
+    for_df  = {}
+    for item in with_who_missed.apply(get_who_miss, axis=1).dropna().values:
+        for_df.update(item)
+    df = pd.DataFrame(for_df).T
+    class_jus = all_jus[all_jus['matrícula'].isin(df.matrícula)]
     def classificar_justificativa(row_, class_jus_):
-        df = class_jus_[class_jus_["matrícula"] == row_["matrícula"]]
-        if df.empty:
+        df_ = class_jus_[class_jus_["matrícula"] == row_["matrícula"]]
+        if df_.empty:
             return 'NÃO'
         else:
-            for j, row in df.iterrows():
+            for j, row in df_.iterrows():
                 data_inicio = datetime.strptime(row["data_init"], '%d/%m/%Y')
                 data_fim = datetime.strptime(row["data_end"], '%d/%m/%Y')
                 verdade = data_inicio.date() <= row_.date.to_pydatetime().date() <= data_fim.date()
@@ -111,9 +118,7 @@ if 'ESCOLHA' not in unidade_selected and 'ESCOLHA' not in turma_selected:
                         return "SIM, COM ATESTADO MÉDICO"
                     return 'SIM'
             return 'NÃO'
-
-
-    sel_turma_current['JUSTIFICATIVA'] = sel_turma_current.apply(
+    df['JUSTIFICATIVA'] = df.apply(
         lambda row: classificar_justificativa(row, class_jus),
         axis=1
     )
@@ -123,7 +128,7 @@ if 'ESCOLHA' not in unidade_selected and 'ESCOLHA' not in turma_selected:
     st.markdown(f'### TURMA: {turma_selected}')
     st.markdown(f'### UNIDADE: {unidade_selected}')
     st.markdown(f'### PERÍODO: {inicio_} à {fim_} ')
-    pivot = pd.pivot_table(sel_turma_current, index='matrícula', columns='componente', values='faltas', aggfunc='sum')
+    pivot = pd.pivot_table(df, index='matrícula', columns='componente', values='faltas', aggfunc='sum')
     pivot['TOTAL_DE_FALTAS'] = pivot.sum(axis=1)
     pivot = pivot.sort_values(by='TOTAL_DE_FALTAS', ascending=False)
     pivot = pivot.fillna(0.0)
@@ -136,7 +141,7 @@ if 'ESCOLHA' not in unidade_selected and 'ESCOLHA' not in turma_selected:
     pivot = pivot.set_index('NOME')
     st.markdown('#### faltas por componente **SEM** abondo de atestado médico')
     st.write(pivot)
-    sel_turma_current_ = sel_turma_current.copy()
+    sel_turma_current_ = df.copy()
     sel_turma_current = sel_turma_current_.drop(sel_turma_current_[sel_turma_current_['JUSTIFICATIVA'] == 'SIM, COM ATESTADO MÉDICO'].index)
     pivot = pd.pivot_table(sel_turma_current, index='matrícula', columns='componente', values='faltas', aggfunc='sum')
     pivot['TOTAL_DE_FALTAS'] = pivot.sum(axis=1)
