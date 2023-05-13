@@ -76,7 +76,7 @@ if "I" in unidade and medias:
     st.success('Fichas de desempenho turma/componente individual por professor')
     for pro in df.groupby('professor'):
         try:
-            st.write(prodt[0][pro[0]])
+            st.markdown(f'### {prodt[0][pro[0]]}')
             st.table(pro[1].set_index('professor'))
         except:
             continue
