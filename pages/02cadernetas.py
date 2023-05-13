@@ -2,7 +2,7 @@ import streamlit as st
 
 st.markdown(
   "## BAIXAR CADERNETAS PERSONALIZADAS TURMA/PROFESSOR/COMPONENTE/UNIDADE")
-st.markdown("### cadernetas sem registros de frênquência e notas. :newspaper:")
+st.markdown("### cadernetas :blue[SEM] registros de frênquência e notas. :newspaper:")
 st.sidebar.markdown("# BAIXAR CADERNETAS :newspaper:")
 
 import httpx
@@ -26,6 +26,14 @@ def download_excel_file(lista, turma, tipo):
   return bytes_io.getvalue()
 
 
+@st.cache_data(ttl=3600)
+def get_data_at_db3():
+  response = httpx.get(
+    'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
+  data = response.json()
+  df = pd.DataFrame(data)
+  return df
+
 nome_rm = prodt[1]
 rm_nome = prodt[0]
 to_select = tuple(nome_rm.keys())
@@ -40,10 +48,7 @@ with st.form("formulário"):
   submitted = st.form_submit_button("gerar cadernetas")
   if submitted:
     if prof_sel[0].isdigit() and 'I' in und:
-      response = httpx.get(
-        'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
-      data = response.json()
-      df = pd.DataFrame(data)
+      df = get_data_at_db3()
 
       matrícula = nome_rm.get(prof_sel)
       prof_name = rm_nome.get(matrícula)

@@ -31,17 +31,20 @@ update_to_map = {
   '9298745': 'marcela.campos4@aluno.enova.educacao.ba.gov.br'
 }
 
-
+@st.cache_data(ttl=3600)
+def get_data_at_db4():
+  response = httpx.get(
+    'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
+  data = response.json()
+  df = pd.DataFrame(data)
+  return df
 
 
 pre_leque = ['escolha a turma aqui'] + sorted(list(turmastd.keys()))
 leque = tuple(pre_leque)
 option = st.selectbox('Selecione a turma:', leque)
 if 'escolha a turma aqui' not in option:
-  response = httpx.get(
-    'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
-  data = response.json()
-  df = pd.DataFrame(data)
+  df = get_data_at_db4()
   df = df[df['turma'] == option]
 
   if not df.empty:

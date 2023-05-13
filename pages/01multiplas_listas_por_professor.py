@@ -37,6 +37,15 @@ def rotina(df_, option='', meutipo='', prof='', comp=''):
   return bytes_data
 
 
+@st.cache_data(ttl=3600)
+def get_data_at_db2():
+  response = httpx.get(
+    'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
+  data = response.json()
+  df = pd.DataFrame(data)
+  return df
+
+
 st.markdown("# BAIXAR TODAS LISTAS DO PROFESSOR :books:")
 st.sidebar.markdown("# MÚLTIPLAS LISTA DA CH DO PROF. :books:")
 nome_rm = prodt[1]
@@ -46,14 +55,9 @@ prof_sel = st.selectbox('Selecione o professor', ('PROFESSOR(A)', *to_select))
 if prof_sel[0].isdigit():
   tipo = st.selectbox('Selecione o tipo de lista', ('tipo', *TIPOS))
   if tipo in TIPOS:
-    response = httpx.get(
-      'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
-    data = response.json()
-    df = pd.DataFrame(data)
-
+    df = get_data_at_db2()
     matrícula = nome_rm.get(prof_sel)
     my_ch = programação.get(matrícula)
-
     bytes_dict = {}
     for turma_nome, lcomps in my_ch.items():
       df_ = df[df['turma'] == turma_nome]

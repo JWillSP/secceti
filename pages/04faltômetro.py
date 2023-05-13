@@ -55,7 +55,7 @@ pre_leque = ['ESCOLHA A TURMA'] + sorted(list(turmastd.keys()))
 leque = tuple(pre_leque)
 turma_selected = st.selectbox('Selecione a turma:', leque)
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def get_data_at_db():
     collection1 = db['2023@1124856'] 
     all_stds = pd.DataFrame(list(collection1.find()))
@@ -157,4 +157,4 @@ if 'ESCOLHA' not in unidade_selected and 'ESCOLHA' not in turma_selected:
     st.markdown('#### faltas por componente **COM** abondo de atestado médico')
     st.dataframe(pivot, use_container_width=True)
 else:
-    st.markdown('### ESCOLHA A UNIDADE E A TURMA NO MENU LATERAL')
+    st.markdown('### ESCOLHA A UNIDADE E A TURMA PRIMEIRO')

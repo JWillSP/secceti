@@ -10,14 +10,19 @@ import pickle
 from cifrafor import gera_cifra
 
 
+@st.cache_data(ttl=3600)
+def get_data_at_db6():
+  response = httpx.get(
+    'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
+  data = response.json()
+  df = pd.DataFrame(data)
+  return df
+
 def main():
   st.title("Justificativa de Faltas")
   search_term = st.text_input('Busque pelo nome do estudante', value='NOME DO ESTUDANTE')
   if search_term:
-    response = httpx.get(
-      'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
-    data = response.json()
-    df = pd.DataFrame(data)
+    df = get_data_at_db6()
     df = df[df['estudante'].str.contains(search_term, case=False)]
     if not df.empty:
       df = df[['matrícula', 'estudante', 'turma']]

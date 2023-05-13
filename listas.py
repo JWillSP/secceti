@@ -29,15 +29,19 @@ def download_excel_file(lista, turma, tipo):
     "application/vnd.openxmlformats-    officedocument.spreadsheetml.sheet",
   )
 
+@st.cache_data(ttl=3600)
+def get_data_at_db():
+  response = httpx.get(
+    'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
+  data = response.json()
+  df = pd.DataFrame(data)
+  return df
 
 def main():
   tipo = st.selectbox('Selecione o tipo de lista', ('tipo', *TIPOS))
   # Make API request to get data
   if tipo in TIPOS:
-    response = httpx.get(
-      'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
-    data = response.json()
-    df = pd.DataFrame(data)
+    df = get_data_at_db()
     df = df[df['turma'] == option]
 
     if not df.empty:

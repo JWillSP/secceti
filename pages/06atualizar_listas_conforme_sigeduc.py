@@ -12,9 +12,13 @@ import pickle
 SECRETNAME = 'estudantes '
 try:
   dbcred = st.secrets["dbcred"]
+  db1 = st.secrets["db1"]
+  colec1 = st.secrets["colec1"]
 except FileNotFoundError:
   import os
   dbcred = os.environ['dbcred']
+  db1 = st.secrets["db1"]
+  colec1 = st.secrets["colec1"]
 
 st.sidebar.markdown("### ATUALIZAR LISTA DE ALUNOS NO BANCO DE DADOS 🎈")
 
@@ -111,9 +115,9 @@ if to_next:
           st.json(to_json)
           try:
             cluster = MongoClient(f"{dbcred}")
-            db = cluster["college"]
+            db = cluster[db1]
             db.list_collection_names()
-            collection = db['2023@1124856']
+            collection = db[colec1]
             collection.drop()
             collection.insert_many(to_json)
             st.success('Banco de dados atualizado com sucesso')
