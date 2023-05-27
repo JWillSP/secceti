@@ -7,8 +7,6 @@ import pickle
 SECRETNAME = 'estudantes '
 
 st.markdown("### BAIXAR CHAVE DE ACESSO ADMINISTRATIVA :old_key:")
-st.sidebar.markdown(
-  "### ATUALIZAR LISTA DE ALUNOS NO BANCO DE DADOS :old_key:")
 
 st.write("## Fomulário de login")
 

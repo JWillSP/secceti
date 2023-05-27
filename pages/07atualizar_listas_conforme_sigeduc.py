@@ -20,7 +20,6 @@ except FileNotFoundError:
   db1 = st.secrets["db1"]
   colec1 = st.secrets["colec1"]
 
-st.sidebar.markdown("### ATUALIZAR LISTA DE ALUNOS NO BANCO DE DADOS 🎈")
 
 ph = st.empty()
 form = ph.container()

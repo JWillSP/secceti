@@ -47,7 +47,6 @@ def get_data_at_db2():
 
 
 st.markdown("# BAIXAR TODAS LISTAS DO PROFESSOR :books:")
-st.sidebar.markdown("# MÚLTIPLAS LISTA DA CH DO PROF. :books:")
 nome_rm = prodt[1]
 to_select = tuple(nome_rm.keys())
 prof_sel = st.selectbox('Selecione o professor', ('PROFESSOR(A)', *to_select))

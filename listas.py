@@ -7,7 +7,6 @@ from external import do_file, do_file2
 from namepaths import dict_tipos
 
 st.markdown("# BAIXAR LISTA DE ALUNOS :clipboard:")
-st.sidebar.markdown("# BAIXAR LISTAS :clipboard:")
 
 TIPOS = tuple(dict_tipos.keys())
 from turmasdetalhes import turmastd

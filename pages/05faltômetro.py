@@ -8,7 +8,6 @@ from turmasdetalhes import turmastd
 import numpy as np
 
 st.markdown('# Faltômetro')
-st.sidebar.markdown("# Faltômetro")
 
 try:
   dbcred = st.secrets["dbcred"]

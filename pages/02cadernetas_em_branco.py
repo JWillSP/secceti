@@ -3,7 +3,6 @@ import streamlit as st
 st.markdown(
   "## BAIXAR CADERNETAS PERSONALIZADAS TURMA/PROFESSOR/COMPONENTE/UNIDADE")
 st.markdown("### cadernetas :blue[SEM] registros de frênquência e notas. :newspaper:")
-st.sidebar.markdown("# BAIXAR CADERNETAS :newspaper:")
 
 import httpx
 import pandas as pd
