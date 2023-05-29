@@ -10,8 +10,9 @@ from turmasdetalhes import turmastd
 import numpy as np
 from cader import do_cader_x
 import uuid
+from myecm import logador
 
-st.markdown('# Cadernetas Preenchidas pelo App CallDariaEdit')
+
 
 def download_excel_file(layout, lista, nome, prof):
   """
@@ -31,13 +32,30 @@ def download_excel_file(layout, lista, nome, prof):
 
 try:
   dbcred = st.secrets["dbcred"]
+  db1 = st.secrets["db1"]
+  colec5 = st.secrets["colec5"]
+  colec6 = st.secrets["colec6"]
+  colec2 = st.secrets["colec2"]
+  colec3 = st.secrets["colec3"]
 except FileNotFoundError:
   import os
   dbcred = os.environ['dbcred']
+  db1 = os.environ["db1"]
+  colec5 = os.environ["colec5"]
+  colec6 = os.environ["colec6"]
+  colec2 = os.environ["colec2"]
+  colec3 = os.environ["colec3"]
 
 cluster = MongoClient(dbcred)
-db = cluster["college"]
+db = cluster[db1]
 
+
+
+
+client = pymongo.MongoClient(dbcred)
+db = client[db1]
+collection2 = db[colec2]
+collection3 = db[colec3]
 # with open('2023frequencia.json', encoding='utf-8') as f:
 #     data = json.load(f)
 # with open('2023@jus.json', encoding='utf-8') as f:
@@ -71,9 +89,9 @@ for unidade, datas in unidades.items():
 
 @st.cache_data(ttl=3600)
 def get_data_at_db():
-    collection2 = db['2023frequencia']
+    collection2 = db[colec5]
     freq_all = pd.DataFrame(list(collection2.find()))
-    collection3 = db['2023@jus']
+    collection3 = db[colec6]
     all_jus = pd.DataFrame(list(collection3.find()))
     return freq_all, all_jus
 
@@ -115,6 +133,8 @@ def gera_pivot(unidade_selected, turma_selected, componente):
     for item in with_who_missed_sorted.apply(get_who_miss, axis=1).dropna().values:
         for_df.update(item)
     df = pd.DataFrame(for_df).T
+    if df.empty:
+        return {}, {}, {}, pd.DataFrame(), pd.DataFrame()
     class_jus = all_jus[all_jus['matrícula'].isin(df.matrícula)]
     def classificar_justificativa(row_, class_jus_):
         df_ = class_jus_[class_jus_["matrícula"] == row_["matrícula"]]
@@ -157,121 +177,102 @@ def gera_pivot(unidade_selected, turma_selected, componente):
     return aula_data, aula_content_dict, aula_id, pivot, pivot2
 
 
-# Custom function to generate download links
-def get_download_link(file_name):
-    csv_data = f'Data for {file_name}'  # Replace with actual file data
-    b64 = base64.b64encode(csv_data.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="{file_name}">Download</a>'
-    return href
+def main(user, logout):    # Custom function to generate download links
+    def get_download_link(file_name):
+        csv_data = f'Data for {file_name}'  # Replace with actual file data
+        b64 = base64.b64encode(csv_data.encode()).decode()
+        href = f'<a href="data:file/csv;base64,{b64}" download="{file_name}">Download</a>'
+        return href
 
-# Display column
+    # Display column
 
-try:
-  dbcred = st.secrets["dbcred"]
-  db1 = st.secrets["db1"]
-  colec2 = st.secrets["colec2"]
-  colec3 = st.secrets["colec3"]
-except FileNotFoundError:
-  import os
-  dbcred = os.environ['dbcred']
-  db1 = st.secrets["db1"]
-  colec2 = st.secrets["colec2"]
-  colec3 = st.secrets["colec3"]
+    @st.cache_data(ttl=3600)
+    def gera_meta():
+        return list(collection3.find())[1]
 
-client = pymongo.MongoClient(dbcred)
-db = client[db1]
-collection2 = db[colec2]
-collection3 = db[colec3]
+    main_meta_dict = gera_meta()['programação']
 
+    st.markdown('# Cadernetas Preenchidas pelo App CallDariaEdit')
+    st.subheader("permissão de visualizar todos alunos pelo usuário adm ou professor: " + user)
+    st.button("sair", on_click=logout)
+    unidade = st.selectbox("Selecione a unidade",
+                        ("unidade:", "I UND.", 'II UND.', 'III UND.'))
 
-@st.cache_data(ttl=3600)
-def gera_meta():
-    return list(collection3.find())[1]
+    @st.cache_data(ttl=3600)
+    def gera_medias(und):
+        return list(collection2.find({"unidade": und.split()[0]}))
 
-main_meta_dict = gera_meta()['programação']
+    medias = gera_medias(unidade)
 
 
-unidade = st.selectbox("Selecione a unidade",
-                     ("unidade:", "I UND.", 'II UND.', 'III UND.'))
-
-@st.cache_data(ttl=3600)
-def gera_medias(und):
-    return list(collection2.find({"unidade": und.split()[0]}))
-
-medias = gera_medias(unidade)
+    if "I" in unidade and medias:
 
 
-if "I" in unidade and medias:
+        uniques_planejamentos = set()
+        dict_of_prof_planejamento = {}
+        for prof_code, prof_collec in main_meta_dict.items():
+            list_of_planejamentos = []
+            for class_name, matter_list in prof_collec.items():
+                for matter in matter_list:
+                    uniques_planejamentos.add((class_name, matter))
+                    list_of_planejamentos.append((class_name, matter))
+            dict_of_prof_planejamento[prof_code] = list_of_planejamentos
+
+        set_of_done = set()
+        for item in medias:
+            set_of_done.add((item['turma'], item['componente']))
+        # not_done  = uniques_planejamentos -  set_of_done
+        col1, col2, col3 = st.columns(3)
+        col3.metric(label=r"% de envios", value=f"{round((len(set_of_done)/len(uniques_planejamentos)*100), 1)} %")
+        dict_to_df = {}
+        contador = 0
+        for prof_rm, prof_list in dict_of_prof_planejamento.items():
+            for item in prof_list:
+                if item in set_of_done:
+                    dict_to_df.update({contador:{'professor':prof_rm, 'turma':item[0], 'componente':item[1], 'status':'entregue'}})
+                else:
+                    dict_to_df.update({contador:{'professor':prof_rm, 'turma':item[0], 'componente':item[1], 'status':'aguardando'}})
+                contador += 1
+        df = pd.DataFrame(dict_to_df).T
+        dffall = df.copy()
+        dffall['professor'] = dffall['professor'].map(prodt[0])
+        dffall = dffall.dropna()
+        if user  in prodt[0].values():
+            list_de_profs = list(filter(lambda x: user in x,  prodt[1].keys()))
+        else:
+            list_de_profs = list(prodt[1].keys())
+        st.success('Fichas de desempenho de professor selecionado')
+        professor = st.selectbox('Selecione o professor', list_de_profs)
+        dfp = df[df['professor'] == prodt[1][professor]]
+        st.markdown(f'### {professor}')
+        st.table(dfp.set_index('professor'))
+        envios = filter(lambda x: x['matrícula'] == prodt[1][professor], medias)
+        dict_envios = {}
+        for idx, data_selected in enumerate(envios):
+            dict_envios[idx] = st.columns([1, 1, 1])  # Adjust column widths as needed
+            turma = data_selected.get('turma')
+            componente = data_selected.get('componente')
+            dict_envios[idx][0].write(turma)
+            dict_envios[idx][1].write(componente)
+            if dict_envios[idx][2].button('gerar_caderneta', key=idx):
+                aula_data, aula_content_dict, aula_id, pivot, pivot2 = gera_pivot(unidade.split()[0], turma, componente)
+                bytes_data = do_cader_x(
+                    lmed=data_selected.get('médias'),
+                    turma=turma,
+                    componente=componente,
+                    professor=professor,
+                    unidade=unidade.split()[0],
+                    aula_id=aula_id,
+                    aula_data=aula_data,
+                    aula_content_dict=aula_content_dict,
+                    pivot=pivot,
+                    pivot2=pivot2
+                )
+                if bytes_data:
+                    download_excel_file(layout=dict_envios[idx][2], lista=bytes_data, nome=f'{turma}_{componente}', prof=professor)                
 
 
-    uniques_planejamentos = set()
-    dict_of_prof_planejamento = {}
-    for prof_code, prof_collec in main_meta_dict.items():
-        list_of_planejamentos = []
-        for class_name, matter_list in prof_collec.items():
-            for matter in matter_list:
-                uniques_planejamentos.add((class_name, matter))
-                list_of_planejamentos.append((class_name, matter))
-        dict_of_prof_planejamento[prof_code] = list_of_planejamentos
-
-    set_of_done = set()
-    for item in medias:
-        set_of_done.add((item['turma'], item['componente']))
-    # not_done  = uniques_planejamentos -  set_of_done
-    col1, col2, col3 = st.columns(3)
-    col3.metric(label=r"% de envios", value=f"{round((len(set_of_done)/len(uniques_planejamentos)*100), 1)} %")
-    dict_to_df = {}
-    contador = 0
-    for prof_rm, prof_list in dict_of_prof_planejamento.items():
-        for item in prof_list:
-            if item in set_of_done:
-                dict_to_df.update({contador:{'professor':prof_rm, 'turma':item[0], 'componente':item[1], 'status':'entregue'}})
-            else:
-                dict_to_df.update({contador:{'professor':prof_rm, 'turma':item[0], 'componente':item[1], 'status':'aguardando'}})
-            contador += 1
-    df = pd.DataFrame(dict_to_df).T
-    dffall = df.copy()
-    dffall['professor'] = dffall['professor'].map(prodt[0])
-    dffall = dffall.dropna()
-    st.success('Fichas de desempenho de professor selecionado')
-    professor = st.selectbox('Selecione o professor', prodt[1].keys())
-    dfp = df[df['professor'] == prodt[1][professor]]
-    st.markdown(f'### {professor}')
-    st.table(dfp.set_index('professor'))
-    envios = filter(lambda x: x['matrícula'] == prodt[1][professor], medias)
-    dict_envios = {}
-    for idx, data_selected in enumerate(envios):
-        dict_envios[idx] = st.columns([1, 1, 1])  # Adjust column widths as needed
-        turma = data_selected.get('turma')
-        componente = data_selected.get('componente')
-        dict_envios[idx][0].write(turma)
-        dict_envios[idx][1].write(componente)
-        if dict_envios[idx][2].button('gerar_caderneta', key=idx):
-            aula_data, aula_content_dict, aula_id, pivot, pivot2 = gera_pivot(unidade.split()[0], turma, componente)
-            bytes_data = do_cader_x(
-                lmed=data_selected.get('médias'),
-                turma=turma,
-                componente=componente,
-                professor=professor,
-                unidade=unidade.split()[0],
-                aula_id=aula_id,
-                aula_data=aula_data,
-                aula_content_dict=aula_content_dict,
-                pivot=pivot,
-                pivot2=pivot2
-            )
-            if bytes_data:
-                download_excel_file(layout=dict_envios[idx][2], lista=bytes_data, nome=f'{turma}_{componente}', prof=professor)                
-
-
-    # st.dataframe(dffall.set_index('professor'))
-    # st.success('Fichas de desempenho turma/componente de todos os professores')
-    # for pro in df.groupby('professor'):
-    #     try:
-    #         st.markdown(f'### {prodt[0][pro[0]]}')
-    #         st.table(pro[1].set_index('professor'))
-    #     except:
-    #         continue
+logador(external_fucntion=main, permitions=['isAdmin', 'isTeacher'])
 
 
 

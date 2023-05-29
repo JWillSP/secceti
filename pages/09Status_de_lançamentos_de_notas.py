@@ -12,9 +12,9 @@ try:
 except FileNotFoundError:
   import os
   dbcred = os.environ['dbcred']
-  db1 = st.secrets["db1"]
-  colec2 = st.secrets["colec2"]
-  colec3 = st.secrets["colec3"]
+  db1 = os.environ["db1"]
+  colec2 = os.environ["colec2"]
+  colec3 = os.environ["colec3"]
 
 client = pymongo.MongoClient(dbcred)
 db = client[db1]

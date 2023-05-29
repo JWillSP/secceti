@@ -24,14 +24,24 @@ def download_excel_file(lista, turma, tipo):
   bytes_io = io.BytesIO(lista)
   return bytes_io.getvalue()
 
+from pymongo import MongoClient
+try:
+  dbcred = st.secrets["dbcred"]
+  db1 = st.secrets["db1"]
+  colec1 = st.secrets["colec1"]
+except FileNotFoundError:
+  import os
+  dbcred = os.environ['dbcred']
+  db1 = os.environ["db1"]
+  colec1 = os.environ["colec1"]
+
+cluster = MongoClient(dbcred)
+db = cluster[db1]
 
 @st.cache_data(ttl=3600)
 def get_data_at_db3():
-  response = httpx.get(
-    'https://freq-willapp.herokuapp.com/allstudents/2023%401124856')
-  data = response.json()
-  df = pd.DataFrame(data)
-  return df
+    data = db[colec1].find()
+    return pd.DataFrame(data)
 
 nome_rm = prodt[1]
 rm_nome = prodt[0]

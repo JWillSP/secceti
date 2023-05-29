@@ -122,7 +122,8 @@ def do_cader_x(
       ws1[F'BA{row + 9}'] = normalizador(std_obj.get('med'))
     else:
       ws1[F'BA{row + 9}'] = std_obj.get('med')
-    ws1[F'BB{row + 9}'] = pivot2.loc[:, 'TOTAL_DE_FALTAS'].to_dict().get(rm, '0')
+    if not pivot2.empty:
+      ws1[F'BB{row + 9}'] = pivot.loc[:, 'TOTAL_DE_FALTAS'].to_dict().get(rm, '0')
     for index, timestamp in enumerate(sorted_timestamps):
       if timestamp[0] in pivot.columns:
         jus = pivot[timestamp[0]].to_dict().get(rm, 0) - pivot2[timestamp[0]].to_dict().get(rm, 0)

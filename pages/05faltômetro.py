@@ -11,12 +11,20 @@ st.markdown('# Faltômetro')
 
 try:
   dbcred = st.secrets["dbcred"]
+  db1 = st.secrets["db1"]
+  colec1 = st.secrets["colec1"]
+  colec5 = st.secrets["colec5"]
+  colec6 = st.secrets["colec6"]
 except FileNotFoundError:
   import os
   dbcred = os.environ['dbcred']
+  db1 = os.environ["db1"]
+  colec1 = os.environ["colec1"]
+  colec5 = os.environ["colec5"]
+  colec6 = os.environ["colec6"]
 
 cluster = MongoClient(dbcred)
-db = cluster["college"]
+db = cluster[db1]
 
 # with open('2023frequencia.json', encoding='utf-8') as f:
 #     data = json.load(f)
@@ -56,11 +64,11 @@ turma_selected = st.selectbox('Selecione a turma:', leque)
 
 @st.cache_data(ttl=3600)
 def get_data_at_db():
-    collection1 = db['2023@1124856'] 
+    collection1 = db[colec1] 
     all_stds = pd.DataFrame(list(collection1.find()))
-    collection2 = db['2023frequencia']
+    collection2 = db[colec5]
     freq_all = pd.DataFrame(list(collection2.find()))
-    collection3 = db['2023@jus']
+    collection3 = db[colec6]
     all_jus = pd.DataFrame(list(collection3.find()))
     return all_stds, freq_all, all_jus
 

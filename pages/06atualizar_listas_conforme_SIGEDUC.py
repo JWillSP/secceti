@@ -2,12 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
-import time
-import io
 from fix_names import nametofix
-import jwt
-
-import pickle
+from myecm import logador
 
 SECRETNAME = 'estudantes '
 try:
@@ -17,50 +13,17 @@ try:
 except FileNotFoundError:
   import os
   dbcred = os.environ['dbcred']
-  db1 = st.secrets["db1"]
-  colec1 = st.secrets["colec1"]
+  db1 = os.environ["db1"]
+  colec1 = os.environ["colec1"]
 
 
-ph = st.empty()
-form = ph.container()
-form.write("##### SUBA SUA CHAVE DE ACESSO ADMINISTRATIVA")
-uploaded_file = form.file_uploader("Upload seu login_data.pkl file",
-                                   type=["pkl"])
-if uploaded_file is not None:
-  login_data = pickle.load(io.BytesIO(uploaded_file.read()))
-else:
-  login_data = None
 
-if login_data is not None and \
-    all(key in login_data for key in ['access_token', 'token_type', 'bonds', 'prof_user', 'expires_in']):
-
-  try:
-    decoded_token = jwt.decode(login_data['access_token'],
-                               algorithms=["HS256"],
-                               options={"verify_signature": False})
-    if decoded_token['exp'] < time.time():
-      raise Exception("Token expired")
-    form.success("You are logged in.")
-
-  except Exception as e:
-    form.write("Seu tempo de acesso expirou. Por favor, faça login novamente.")
-    login_data = None
-  except:
-    form.write(
-      "Sua chave de acesso é inválida. por favor, faça login novamente.")
-    login_data = None
-
-try:
-  to_next = (not login_data == None)
-except ValueError:
-  to_next = login_data.any()
-
-if to_next:
-  ph.empty()
-  full_name = login_data['prof_user']['full_name']
+def main(user, logout):
+  full_name = user
   st.markdown(
     f'### {full_name}, bem vindo ao sistema de atualização de alunos no banco de dados'
   )
+  st.button('sair', on_click=logout)
   st.write(
     "##### faça upload do arquivo com a lista de alunos vindas do SIGEDUC")
   uploaded_file = st.file_uploader("escolha o arquivo")
@@ -122,3 +85,5 @@ if to_next:
             st.success('Banco de dados atualizado com sucesso')
           except:
             st.error('erro ao atualizar banco de dados')
+
+logador(main, permitions=['isAdmin'])
