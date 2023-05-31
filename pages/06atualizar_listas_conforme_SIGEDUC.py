@@ -42,7 +42,9 @@ def main(user, logout):
         })
       trans = {
         202231507433: 'HERICA DE ALMEIDA SANTOS',
-        10454350: 'ERICK DA SILVA REIS'
+        10454350: 'ERICK DA SILVA REIS',
+        202331736985: 'YURI TAVARES ALMEIDA',
+        202331407332: 'ÍRIS DA SILVA LIMA'
         }
       trans.update(nametofix)
       for rm, nome in trans.items():
