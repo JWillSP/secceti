@@ -40,7 +40,10 @@ def main(user, logout):
           'ETAPA-SÉRIE': 'serie',
           'SITUACAO': 'status'
         })
-      trans = {202231507433: 'HERICA DE ALMEIDA SANTOS'}
+      trans = {
+        202231507433: 'HERICA DE ALMEIDA SANTOS',
+        10454350: 'ERICK DA SILVA REIS'
+        }
       trans.update(nametofix)
       for rm, nome in trans.items():
         df1.loc[df1['matrícula'] == rm, 'estudante'] = nome
